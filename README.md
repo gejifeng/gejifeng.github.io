@@ -6,7 +6,7 @@ A personal bilingual blog (English & 中文) built with [Jekyll](https://jekyllr
 
 ## Features
 
-- Responsive design with dark/light mode
+- Responsive design with dark/light mode 
 - Bilingual posts (English & Chinese) with language filter on home page
 - Categories, tags, and archives
 - Full-text search
