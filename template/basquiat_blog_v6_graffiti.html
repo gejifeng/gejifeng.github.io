@@ -1,0 +1,490 @@
+
+<link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Special+Elite&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+.root{width:100%;position:relative;overflow:hidden;background:#1b2027}
+.view{position:absolute;inset:0;display:flex;flex-direction:column;transition:transform .85s cubic-bezier(.86,0,.07,1),opacity .6s ease}
+.cv{background:#1b2027;z-index:2;transform:translateX(0);opacity:1}
+.cv.away{transform:translateX(-100%);opacity:0;pointer-events:none}
+.bv{background:#f5f0e2;z-index:1;transform:translateX(100%);opacity:0;flex-direction:row}
+.bv.here{transform:translateX(0);opacity:1;z-index:3}
+.cb{background:#22272e;border-bottom:1px solid #373e47;padding:10px 18px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.cl{font:600 14px sans-serif;color:#cdd9e5}.cl em{color:#539bf5;font-style:normal}
+.cn{display:flex;gap:14px}.cn a{font-size:12px;color:#768390;text-decoration:none;cursor:default}
+.tbtn{background:none;border:1px solid #e3b341;color:#e3b341;font:12px 'Courier New',monospace;padding:5px 11px;cursor:pointer;border-radius:3px}
+.tbtn:hover{background:#e3b34118}
+.cbody{display:flex;flex:1;overflow:hidden}
+.cside{width:185px;background:#22272e;border-right:1px solid #373e47;padding:16px 0;flex-shrink:0}
+.cava{width:58px;height:58px;border-radius:50%;background:#539bf5;margin:0 auto 9px;display:flex;align-items:center;justify-content:center;font:700 20px sans-serif;color:#fff}
+.cun{text-align:center;font:600 13px sans-serif;color:#cdd9e5;margin-bottom:2px}
+.cud{text-align:center;font-size:11px;color:#768390;margin-bottom:13px}
+.cmi{padding:7px 16px;font-size:12px;color:#768390;cursor:default}
+.cmi.on{color:#539bf5;background:#539bf512}
+.cmain{flex:1;padding:14px;overflow-y:auto;display:flex;flex-direction:column;gap:9px}
+.cpost{background:#22272e;border:1px solid #373e47;border-radius:5px;padding:12px 15px}
+.cpmt{font-size:10px;color:#768390;margin-bottom:4px}
+.cptl{font:600 13px sans-serif;color:#cdd9e5;margin-bottom:5px;line-height:1.4}
+.cpex{font-size:11px;color:#768390;line-height:1.6;margin-bottom:7px}
+.ctag{display:inline-block;font-size:10px;padding:2px 7px;border-radius:2px;background:#539bf512;border:1px solid #539bf5;color:#539bf5;margin-right:3px}
+.bside-c{flex-shrink:0;cursor:pointer;position:relative;z-index:2}
+.bmain-c{flex:1;cursor:default;position:relative;z-index:2}
+</style>
+
+<div class="root" id="root" style="min-height:700px">
+  <div class="view cv" id="cv" style="min-height:700px">
+    <div class="cb">
+      <div class="cl">jifeng<em>.dev</em></div>
+      <div class="cn"><a>Home</a><a>Archives</a><a>Tags</a><a>About</a></div>
+      <button class="tbtn" id="toB">&#9775; Artist Mode</button>
+    </div>
+    <div class="cbody">
+      <div class="cside">
+        <div class="cava">J</div>
+        <div class="cun">Jifeng</div>
+        <div class="cud">Researcher · Artist · Geek</div>
+        <div class="cmi on">&#9632; Home</div>
+        <div class="cmi">&#9633; Categories</div>
+        <div class="cmi">&#9633; Tags</div>
+        <div class="cmi">&#9633; Archives</div>
+        <div class="cmi">&#9633; About</div>
+      </div>
+      <div class="cmain">
+        <div class="cpost">
+          <div class="cpmt">2025-04-08 · 12 min</div>
+          <div class="cptl">vLLM SSM架构性能调优：Mamba + Transformer混合推理实录</div>
+          <div class="cpex">深入分析 Qwen3.5-27B 在 llama.cpp 下的性能瓶颈——kv_unified=false 导致的 CPU↔GPU 传输问题，切换至 vLLM 后的完整性能对比...</div>
+          <span class="ctag">vLLM</span><span class="ctag">Qwen</span><span class="ctag">Inference</span>
+        </div>
+        <div class="cpost">
+          <div class="cpmt">2025-03-22 · 8 min</div>
+          <div class="cptl">OpenClaw + CosyVoice3：构建低延迟全双工语音对话系统</div>
+          <div class="cpex">从 Telegram Bot 到 X-Talk 方案的完整调研，claw-voice-chat 在 Tailscale HTTPS 下部署实践...</div>
+          <span class="ctag">Voice AI</span><span class="ctag">OpenClaw</span><span class="ctag">TTS</span>
+        </div>
+        <div class="cpost">
+          <div class="cpmt">2025-03-05 · 6 min</div>
+          <div class="cptl">反应扩散系统与 AI Agent 竞争模块架构的数学类比</div>
+          <div class="cpex">Hopfield 网络、Langevin 动力学到 Kuramoto 同步——四个开放数学问题：收敛保证、非线性点火相变...</div>
+          <span class="ctag">Neural Dynamics</span><span class="ctag">Math</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="view bv" id="bv" style="min-height:700px">
+    <canvas class="bside-c" id="bside" width="162"></canvas>
+    <canvas class="bmain-c" id="bmain"></canvas>
+  </div>
+</div>
+
+<script>
+var cvEl=document.getElementById('cv');
+var bvEl=document.getElementById('bv');
+var bside=document.getElementById('bside');
+var bmain=document.getElementById('bmain');
+var sc=bside.getContext('2d');
+var mc=bmain.getContext('2d');
+var drawn=false;
+var activeNav=0;
+var sideHits=[];
+
+var NAV=['WORKS','JOURNAL','ANATOMY','WORDS','CONTACT'];
+var C={red:'#b52a1a',gold:'#d4a017',blue:'#1a4f8c',blk:'#0f0a04',grn:'#1e6b3c',org:'#c05a12',pur:'#5c2d7a',ink:'#3a2e1a',dblu:'#003580'};
+
+var PAGES={
+  0:[
+    {date:'APR 2025 · FIG.1',title:'vLLM + MAMBA©',sub:'SSM ANATOMY',
+     body:['KV_UNIFIED = FALSE','CPU↔GPU TRANSFER','34 GRAPH SPLITS','性能实录©'],
+     stk:'llama.cpp',aft:'vLLM★',tags:['vLLM','QWEN','PERF'],tc:C.blue,bc:'rgba(26,79,140,0.07)'},
+    {date:'MAR 2025 · FIG.2',title:'VOICE WITHOUT',sub:'A MOUTH©',
+     body:['CosyVoice3 → 喉咙','LATENCY: 0.8s','LONELINESS: ∞','© FULL-DUPLEX ©'],
+     stk:'REACTIVE',aft:'DUPLEX',tags:['VOICE','TTS','CLAW'],tc:C.red,bc:'rgba(181,42,26,0.07)'},
+    {date:'FEB 2025 · FIG.3',title:'NEURAL CHAOS',sub:'KURAMOTO©',
+     body:['HOPFIELD: 记住一切','LANGEVIN: 忘记一切','4 OPEN PROBLEMS','© MATH IS BODY ©'],
+     stk:'CONTROL',aft:'CHAOS',tags:['HOPFIELD','MATH','SYNC'],tc:C.grn,bc:'rgba(30,107,60,0.07)'}
+  ],
+  1:[
+    {date:'MAR 2025 · NOTE.1',title:'TOPOLOGY AS',sub:'SKIN©',
+     body:['莫比乌斯 ≠ 首饰','内面 = 外面','熔掉两件金器','铸无名称之物'],
+     stk:'首饰',aft:'证明',tags:['GOLD','MÖBIUS','BODY'],tc:C.gold,bc:'rgba(212,160,23,0.07)'},
+    {date:'JAN 2025 · NOTE.2',title:'AI COMPANION',sub:'ARCHITECTURE©',
+     body:['竞争模块架构','吸引子动力学','真正的记忆?','© NOT REACTIVE ©'],
+     stk:'STATIC',aft:'DYNAMIC',tags:['AGENT','MEMORY'],tc:C.pur,bc:'rgba(92,45,122,0.07)'}
+  ],
+  2:[
+    {date:'DEC 2024 · ANAT.1',title:'HOMELAB',sub:'ANATOMY©',
+     body:['A100-SXM4-80GB','gejifengai+ROG','WireGuard VPN','© BARE METAL ©'],
+     stk:'CLOUD',aft:'HOMELAB',tags:['A100','UBUNTU','VPN'],tc:C.org,bc:'rgba(192,90,18,0.07)'}
+  ],
+  3:[
+    {date:'APR 2025 · WD.1',title:'SAMO©',sub:'WAS HERE',
+     body:['每个词都是标签','每行都是涂鸦','无序即秩序','© WORDS ARE PAINT'],
+     stk:'TEXT',aft:'MARK',tags:['SAMO','WORDS','©'],tc:C.blk,bc:'rgba(15,10,4,0.07)'}
+  ],
+  4:[
+    {date:'ALWAYS · CT.1',title:'FIND ME',sub:'IF YOU CAN©',
+     body:['gejifengai[dot]local','VPN: WireGuard','© CONTACT = ART ©','SIGNAL > EMAIL'],
+     stk:'EMAIL',aft:'SIGNAL',tags:['CONTACT','VPN','KEY'],tc:C.blue,bc:'rgba(26,79,140,0.07)'}
+  ]
+};
+
+/* ── utils ── */
+function rnd(n){return(Math.random()-.5)*2*n;}
+
+function shakyLine(ctx,x1,y1,x2,y2,lw,col){
+  ctx.save();ctx.strokeStyle=col||C.blk;ctx.lineWidth=lw||2.5;ctx.lineCap='round';
+  var d=Math.hypot(x2-x1,y2-y1),steps=Math.max(4,Math.ceil(d/9));
+  ctx.beginPath();ctx.moveTo(x1+rnd(2),y1+rnd(2));
+  for(var i=1;i<=steps;i++){var t=i/steps;ctx.lineTo(x1+(x2-x1)*t+rnd(3.5),y1+(y2-y1)*t+rnd(3.5));}
+  ctx.stroke();ctx.restore();
+}
+function shakyRect(ctx,x,y,w,h,lw,col){
+  shakyLine(ctx,x,y,x+w,y,lw,col);shakyLine(ctx,x+w,y,x+w,y+h,lw,col);
+  shakyLine(ctx,x+w,y+h,x,y+h,lw,col);shakyLine(ctx,x,y+h,x,y,lw,col);
+}
+function crown(ctx,x,y,sz,col){
+  col=col||C.gold;var s=sz;
+  ctx.save();ctx.strokeStyle=col;ctx.lineWidth=2.5;ctx.lineCap='round';
+  ctx.beginPath();
+  ctx.moveTo(x,y+s*.42);ctx.lineTo(x+s*.15,y+s*.08);ctx.lineTo(x+s*.32,y+s*.3);
+  ctx.lineTo(x+s*.5,y-s*.05);ctx.lineTo(x+s*.68,y+s*.3);ctx.lineTo(x+s*.85,y+s*.08);
+  ctx.lineTo(x+s,y+s*.42);ctx.lineTo(x,y+s*.42);ctx.stroke();
+  [.15,.5,.85].forEach(function(t){ctx.beginPath();ctx.arc(x+s*t,y+s*.08,s*.07,0,Math.PI*2);ctx.fillStyle=col;ctx.fill();});
+  ctx.restore();
+}
+function arrow(ctx,x1,y1,x2,y2,col,lw){
+  shakyLine(ctx,x1,y1,x2,y2,lw||1.8,col||C.ink);
+  var ang=Math.atan2(y2-y1,x2-x1),al=10;
+  ctx.save();ctx.strokeStyle=col||C.ink;ctx.lineWidth=lw||1.8;ctx.lineCap='round';
+  ctx.beginPath();
+  ctx.moveTo(x2,y2);ctx.lineTo(x2-al*Math.cos(ang-.5),y2-al*Math.sin(ang-.5));
+  ctx.moveTo(x2,y2);ctx.lineTo(x2-al*Math.cos(ang+.5),y2-al*Math.sin(ang+.5));
+  ctx.stroke();ctx.restore();
+}
+
+/* ══════════════════════════════════
+   GRAFFITI LAYER — modelled on the
+   reference painting: white ground,
+   big black slabs, red scrawl blobs,
+   coloured figures, ink splatters,
+   large bold words, circled symbols,
+   thin arrow connectors
+══════════════════════════════════ */
+function drawGraffiti(ctx,W,H){
+  ctx.save();
+
+  /* 1. LARGE BLACK PAINT SLABS — like the vertical black mass & horizontal stroke */
+  ctx.fillStyle=C.blk;
+  /* tall vertical slab — right-centre */
+  ctx.save();ctx.globalAlpha=0.13;
+  ctx.translate(W*.78,H*.08);ctx.rotate(0.05);
+  ctx.fillRect(0,0,28,H*.28);
+  ctx.restore();
+  /* thick horizontal stroke — left-centre */
+  ctx.save();ctx.globalAlpha=0.11;
+  ctx.translate(W*.04,H*.44);ctx.rotate(-0.04);
+  ctx.fillRect(0,0,W*.38,14);
+  ctx.restore();
+  /* small black slab bottom-right */
+  ctx.save();ctx.globalAlpha=0.10;
+  ctx.translate(W*.82,H*.84);ctx.rotate(0.08);
+  ctx.fillRect(0,0,22,H*.1);
+  ctx.restore();
+
+  /* 2. RED SCRAWL CLUSTER — top-left, like the "Laboratory Tested" blob */
+  ctx.save();ctx.globalAlpha=0.18;
+  ctx.fillStyle=C.red;
+  ctx.font='900 11px "Permanent Marker",cursive';
+  ctx.save();ctx.translate(W*.02,H*.06);ctx.rotate(-0.08);
+  var redLines=['LaboratoryTested','for StrengthH','FLAME©','GRILLCHEESE'];
+  redLines.forEach(function(l,i){
+    ctx.save();ctx.rotate(rnd(0.08));ctx.fillText(l,rnd(8),i*13+rnd(4));ctx.restore();
+  });
+  ctx.restore();
+  /* red smear blob behind the text */
+  ctx.save();ctx.globalAlpha=0.10;ctx.fillStyle=C.red;
+  ctx.translate(W*.04,H*.09);ctx.rotate(-0.15);
+  ctx.beginPath();ctx.ellipse(0,0,46,30,0,0,Math.PI*2);ctx.fill();
+  ctx.restore();
+  ctx.restore();
+
+  /* 3. BIG SINGLE WORD — like "FREE" or "6,OOR" */
+  ctx.save();ctx.globalAlpha=0.11;
+  ctx.font='900 54px "Permanent Marker",cursive';
+  ctx.fillStyle=C.red;
+  ctx.translate(W*.38,H*.42);ctx.rotate(0.04);ctx.fillText('FREE!',0,0);
+  ctx.restore();
+
+  ctx.save();ctx.globalAlpha=0.09;
+  ctx.font='900 40px "Permanent Marker",cursive';
+  ctx.fillStyle=C.blk;
+  ctx.translate(W*.22,H*.74);ctx.rotate(-0.03);ctx.fillText('6,OOR',0,0);
+  ctx.restore();
+
+  /* 4. TOP-RIGHT TEXT ANNOTATION block — "MOUTH TESTED / FOR ESTHETICS" style */
+  ctx.save();ctx.globalAlpha=0.15;
+  ctx.font='700 10px "Special Elite",cursive';
+  ctx.fillStyle=C.blk;
+  ctx.translate(W*.62,H*.05);ctx.rotate(0.01);
+  ['MOUTH TESTED','FFO R ESTHETICS.'].forEach(function(l,i){ctx.fillText(l,0,i*14);});
+  /* box around MOUTH */
+  ctx.strokeStyle=C.gold;ctx.lineWidth=1.8;
+  ctx.strokeRect(0,-11,46,14);
+  ctx.restore();
+
+  /* 5. CIRCLED / CROSSED SYMBOLS — like the ⊗ in the painting */
+  function circledX(ctx,cx,cy,r,col,a){
+    ctx.save();ctx.globalAlpha=a;ctx.strokeStyle=col;ctx.lineWidth=2.2;
+    ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(cx-r*.65,cy-r*.65);ctx.lineTo(cx+r*.65,cy+r*.65);
+    ctx.moveTo(cx+r*.65,cy-r*.65);ctx.lineTo(cx-r*.65,cy+r*.65);ctx.stroke();
+    ctx.restore();
+  }
+  circledX(ctx,W*.68,H*.62,14,C.grn,0.20);
+  circledX(ctx,W*.14,H*.78,10,C.red,0.15);
+
+  /* 6. COLOURED FIGURE SILHOUETTES — like the blue figure & green blob figure */
+  /* blue upright figure — right */
+  ctx.save();ctx.globalAlpha=0.12;ctx.fillStyle='#1a4f8c';
+  ctx.translate(W*.71,H*.22);
+  ctx.beginPath();ctx.arc(8,0,7,0,Math.PI*2);ctx.fill(); /* head */
+  ctx.fillRect(4,7,8,22); /* torso */
+  ctx.fillRect(0,29,6,18);ctx.fillRect(10,29,6,18); /* legs */
+  ctx.restore();
+
+  /* green blob figure — left-centre (like the military-green mass) */
+  ctx.save();ctx.globalAlpha=0.13;ctx.fillStyle='#2d6a2d';
+  ctx.translate(W*.1,H*.36);ctx.rotate(0.1);
+  ctx.beginPath();ctx.ellipse(0,0,28,36,0,0,Math.PI*2);ctx.fill();
+  ctx.restore();
+
+  /* dark red blob — far right */
+  ctx.save();ctx.globalAlpha=0.13;ctx.fillStyle='#7a1a10';
+  ctx.translate(W*.9,H*.28);ctx.rotate(0.2);
+  ctx.beginPath();ctx.ellipse(0,0,18,22,0,0,Math.PI*2);ctx.fill();
+  ctx.restore();
+
+  /* 7. INK SPLATTERS / DOTS — scattered like the black dots in the painting */
+  var dots=[
+    {x:.38,y:.28,r:4,c:C.blk,a:.18},{x:.52,y:.35,r:3,c:C.blk,a:.15},
+    {x:.6,y:.44,r:2.5,c:C.blk,a:.14},{x:.3,y:.55,r:2,c:C.red,a:.16},
+    {x:.75,y:.6,r:3,c:C.blk,a:.12},{x:.18,y:.65,r:2,c:C.red,a:.13},
+    {x:.44,y:.7,r:4,c:C.blk,a:.10},{x:.82,y:.72,r:2,c:C.blk,a:.13},
+    {x:.56,y:.8,r:2.5,c:C.red,a:.12},{x:.26,y:.86,r:3,c:C.blk,a:.11},
+    {x:.66,y:.18,r:2,c:C.blk,a:.14},{x:.48,y:.52,r:1.5,c:C.red,a:.15},
+  ];
+  dots.forEach(function(d){
+    ctx.save();ctx.globalAlpha=d.a;ctx.fillStyle=d.c;
+    ctx.beginPath();ctx.arc(W*d.x,H*d.y,d.r,0,Math.PI*2);ctx.fill();ctx.restore();
+  });
+
+  /* 8. THIN ARROW CONNECTORS — like the lines connecting labels to figures */
+  ctx.save();ctx.globalAlpha=0.12;
+  arrow(ctx,W*.32,H*.32,W*.28,H*.4,C.blk,1.2);
+  arrow(ctx,W*.55,H*.48,W*.68,H*.55,C.blk,1.2);
+  arrow(ctx,W*.4,H*.6,W*.34,H*.68,C.red,1.2);
+  ctx.restore();
+
+  /* 9. SMALL SCATTERED ANNOTATION WORDS — like "ME.", "ZU", "WHITE GLOVES", "BIG DRUM" */
+  var annots=[
+    {t:'"ANY BROKEN COIL"',x:.01,y:.82,r:-0.02,s:9,c:C.blk,a:.16},
+    {t:'No.73',x:.01,y:.82+12,r:0,s:8,c:C.blk,a:.16},
+    {t:'ME.',x:.25,y:.32,r:0.03,s:9,c:C.blk,a:.18},
+    {t:'ZU',x:.2,y:.46,r:-0.01,s:10,c:C.blk,a:.16},
+    {t:'WHITE GLOVES',x:.58,y:.44,r:0.02,s:8,c:C.blk,a:.14},
+    {t:'BIG DRUM',x:.68,y:.9,r:0.01,s:9,c:C.blk,a:.14},
+    {t:'Hawkman.',x:.72,y:.68,r:-0.02,s:9,c:C.red,a:.18},
+    {t:'BLUE',x:.48,y:.54,r:0.03,s:11,c:'#1a4f8c',a:.18},
+    {t:'GOOD PLACE FOR A HAIRCUT',x:.52,y:.74,r:0.01,s:8,c:C.blk,a:.13},
+    {t:'FLAKEE KCF',x:.35,y:.8,r:-0.02,s:9,c:C.blk,a:.15},
+    {t:'CORII',x:.33,y:.73,r:0.04,s:13,c:C.blk,a:.14},
+  ];
+  annots.forEach(function(d){
+    ctx.save();ctx.globalAlpha=d.a;
+    ctx.font='700 '+d.s+'px "Special Elite",cursive';
+    ctx.fillStyle=d.c;ctx.translate(W*d.x,H*d.y);ctx.rotate(d.r);ctx.fillText(d.t,0,0);
+    ctx.restore();
+  });
+
+  /* 10. SAMO ghost — very faint behind everything */
+  ctx.save();ctx.globalAlpha=0.05;
+  ctx.font='900 70px "Permanent Marker",cursive';
+  ctx.fillStyle=C.blk;
+  ctx.translate(W*.05,H*.58);ctx.rotate(-0.22);ctx.fillText('SAMO',0,0);
+  ctx.restore();
+
+  /* 11. paper ruled lines — very subtle */
+  ctx.save();ctx.strokeStyle='#c0b09022';ctx.lineWidth=1;
+  for(var y=32;y<H;y+=32){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+  ctx.restore();
+
+  ctx.restore();
+}
+
+/* ── SIDEBAR ── */
+function drawSide(){
+  var W=bside.width,H=bside.height;
+  sc.clearRect(0,0,W,H);
+  sc.fillStyle='#ede6cc';sc.fillRect(0,0,W,H);
+
+  sc.save();sc.strokeStyle='#c0b09028';sc.lineWidth=1;
+  for(var y=30;y<H;y+=30){sc.beginPath();sc.moveTo(0,y);sc.lineTo(W,y);sc.stroke();}
+  sc.restore();
+
+  /* red scrawl ghost on sidebar */
+  sc.save();sc.globalAlpha=0.07;sc.fillStyle=C.red;
+  sc.font='700 9px "Special Elite",cursive';
+  sc.translate(4,H*.72);sc.rotate(-0.3);
+  ['tested','for','strength'].forEach(function(l,i){sc.fillText(l,rnd(6),i*11);});
+  sc.restore();
+
+  shakyLine(sc,W-1,0,W-1,H,3.5,C.blk);
+
+  crown(sc,8,18,38,C.gold);
+
+  sc.fillStyle=C.blk;
+  sc.font='900 17px "Permanent Marker",cursive';
+  sc.fillText('JIFENG',8,70);
+  sc.fillStyle=C.red;
+  sc.font='900 11px "Permanent Marker",cursive';
+  sc.fillText('©',103,60);
+  sc.fillStyle=C.red;
+  sc.font='700 9px "Special Elite",cursive';
+  sc.fillText('ARTIST / HACKER',8,84);
+
+  shakyLine(sc,6,92,W-6,92,2.5,C.blk);
+
+  /* TECH MODE btn */
+  var bY=100,bH=26,bW=W-14;
+  shakyRect(sc,7,bY,bW,bH,2.5,C.red);
+  sc.fillStyle=C.red;sc.font='900 10px "Permanent Marker",cursive';
+  sc.fillText('⌨ TECH MODE',13,bY+17);
+  sideHits.back={x:7,y:bY,w:bW,h:bH};
+
+  shakyLine(sc,6,bY+bH+8,W-6,bY+bH+8,2,C.ink);
+
+  sideHits=[];
+  sideHits.back={x:7,y:bY,w:bW,h:bH};
+  var ny=162;
+  var nc=[C.blue,C.red,C.grn,C.gold,C.pur];
+  NAV.forEach(function(label,i){
+    var act=(i===activeNav),col=nc[i];
+    if(act){shakyRect(sc,4,ny-17,W-8,24,2.5,col);sc.fillStyle=col;sc.font='900 13px "Permanent Marker",cursive';}
+    else{sc.fillStyle='#7a6a48';sc.font='700 12px "Special Elite",cursive';}
+    sc.fillText((act?'▶ ':'')+label,10,ny);
+    if(act)crown(sc,W-34,ny-16,24,col);
+    sideHits.push({x:0,y:ny-19,w:W,h:26,idx:i});
+    ny+=36;
+  });
+
+  sc.fillStyle='#9b8860';sc.font='700 8px "Special Elite",cursive';
+  sc.fillText('© SAMO 2025',8,H-10);
+}
+
+/* ── MAIN CANVAS ── */
+function drawMain(){
+  var W=bmain.clientWidth||520,H=bmain.clientHeight||660;
+  bmain.width=W;bmain.height=H;
+  mc.clearRect(0,0,W,H);
+  mc.fillStyle='#f5f0e2';mc.fillRect(0,0,W,H);
+
+  drawGraffiti(mc,W,H);
+
+  /* page label */
+  mc.save();mc.translate(16,20);mc.rotate(-0.015);
+  mc.fillStyle=C.ink;mc.font='700 9px "Special Elite",cursive';
+  mc.fillText('© JIFENG — '+NAV[activeNav]+'  /  FIG.'+(activeNav+1),0,0);
+  mc.restore();
+
+  crown(mc,W/2-24,8,48,C.gold);
+
+  var posts=PAGES[activeNav]||PAGES[0];
+  var lay=[
+    {x:14,y:48,rot:-0.022},
+    {x:Math.min(W*.47,W-228),y:54,rot:0.03},
+    {x:20,y:Math.min(H*.52,H-210),rot:-0.036}
+  ];
+
+  posts.forEach(function(p,i){if(i<3)drawPost(mc,p,lay[i].x,lay[i].y,lay[i].rot,Math.min(218,W*.43));});
+
+  if(posts.length>=2)arrow(mc,lay[0].x+185,lay[0].y+50,lay[1].x+8,lay[1].y+50,C.ink);
+  if(posts.length>=3)arrow(mc,lay[0].x+55,lay[0].y+128,lay[2].x+55,lay[2].y+10,C.ink);
+
+  /* bottom banner */
+  mc.save();mc.translate(W*.16,H-28);mc.rotate(-0.01);
+  shakyRect(mc,0,-16,Math.min(228,W*.54),22,2.5,C.blk);
+  mc.fillStyle=C.blk;mc.font='700 12px "Permanent Marker",cursive';
+  mc.fillText('★  WORLD FAMOUS  ★',6,-1);
+  mc.restore();
+}
+
+function drawPost(ctx,p,ox,oy,rot,bw){
+  ctx.save();ctx.translate(ox,oy);ctx.rotate(rot);
+  var lh=15,pad=7;
+
+  ctx.fillStyle='#9b8860';ctx.font='700 8.5px "Special Elite",cursive';
+  ctx.fillText(p.date,0,0);
+
+  var th=40;
+  ctx.fillStyle=p.bc;ctx.fillRect(0,6,bw,th);
+  shakyRect(ctx,0,6,bw,th,3,p.tc);
+
+  ctx.fillStyle=p.tc;ctx.font='900 15px "Permanent Marker",cursive';
+  ctx.fillText(p.title,pad,24,bw-pad*2);
+  ctx.font='700 10px "Special Elite",cursive';
+  ctx.fillText(p.sub,pad,39,bw-pad*2);
+
+  var by=th+18;
+  var bodyColours=[C.blk,C.red,C.blue,C.grn];
+  p.body.forEach(function(line,i){
+    ctx.save();ctx.translate(rnd(4),0);ctx.rotate(rnd(0.016));
+    ctx.fillStyle=bodyColours[i%4];ctx.font='700 10px "Special Elite",cursive';
+    ctx.fillText(line,2,by+i*lh,bw);ctx.restore();
+  });
+
+  var sy=by+p.body.length*lh+6;
+  ctx.fillStyle=C.blk;ctx.font='900 11px "Permanent Marker",cursive';
+  ctx.fillText(p.stk,2,sy);
+  var sw=ctx.measureText(p.stk).width;
+  ctx.strokeStyle=C.red;ctx.lineWidth=2.8;
+  ctx.beginPath();ctx.moveTo(0,sy-4);ctx.lineTo(sw+4,sy-4);ctx.stroke();
+  ctx.fillStyle=C.red;ctx.fillText(' → '+p.aft,sw+4,sy,bw);
+
+  var tx=0,ty=sy+16;
+  var tc=[p.tc,C.red,C.blue,C.grn];
+  p.tags.forEach(function(tag,ti){
+    var col=tc[ti%tc.length];
+    ctx.font='700 8.5px "Special Elite",cursive';
+    var tw=ctx.measureText(tag).width+8;
+    shakyRect(ctx,tx,ty-11,tw,13,1.5,col);
+    ctx.fillStyle=col;ctx.fillText(tag,tx+4,ty,tw);
+    tx+=tw+5;if(tx>bw-20){tx=0;ty+=16;}
+  });
+
+  ctx.restore();
+}
+
+function init(){
+  var H=bvEl.clientHeight||680;
+  bside.height=H;drawSide();drawMain();
+}
+
+document.getElementById('toB').onclick=function(){
+  cvEl.classList.add('away');bvEl.classList.add('here');
+  if(!drawn){drawn=true;document.fonts.ready.then(function(){init();});}
+};
+
+bside.addEventListener('click',function(e){
+  var r=bside.getBoundingClientRect();
+  var mx=e.clientX-r.left,my=e.clientY-r.top;
+  var b=sideHits.back;
+  if(b&&mx>=b.x&&mx<=b.x+b.w&&my>=b.y&&my<=b.y+b.h){
+    cvEl.classList.remove('away');bvEl.classList.remove('here');return;
+  }
+  sideHits.forEach(function(h){
+    if(h&&h.idx!=null&&mx>=h.x&&mx<=h.x+h.w&&my>=h.y&&my<=h.y+h.h){
+      if(h.idx!==activeNav){activeNav=h.idx;drawSide();drawMain();}
+    }
+  });
+});
+</script>

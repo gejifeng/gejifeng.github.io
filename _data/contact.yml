@@ -1,0 +1,25 @@
+#  The contact options at the bottom of the sidebar.
+
+- type: github
+  icon: "fab fa-github"
+
+- type: email
+  icon: "fas fa-envelope"
+  noblank: true # open link in current tab
+
+- type: rss
+  icon: "fas fa-rss"
+  noblank: true
+
+# Uncomment and complete the url below to enable more contact options
+#
+# - type: linkedin
+#   icon: 'fab fa-linkedin'
+#   url: ''
+
+# - type: twitter
+#   icon: 'fa-brands fa-x-twitter'
+
+# - type: zhihu
+#   icon: 'fab fa-zhihu'
+#   url: ''   # Fill with your Zhihu profile link

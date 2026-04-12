@@ -1,0 +1,35 @@
+# Bundler cache
+.bundle
+vendor
+Gemfile.lock
+
+# Jekyll cache
+.jekyll-cache
+.jekyll-metadata
+_site
+
+# RubyGems
+*.gem
+
+# Node modules
+node_modules
+package-lock.json
+
+# Misc
+assets/js/dist
+_sass/vendors
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# Editor
+.idea
+.vscode
+*.swp
+*.swo
+
+# Env
+.env

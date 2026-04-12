@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Jifeng — Artist</title>
+  <meta name="description" content="Jifeng Ge — painter, maker, explorer of form and material.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Permanent+Marker&family=Special+Elite&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; background: #f5f0e2; }
+    #bv {
+      display: flex;
+      flex-direction: row;
+      width: 100%;
+      height: 100vh;
+    }
+    #bside { flex-shrink: 0; cursor: pointer; display: block; }
+    #bmain { flex: 1; cursor: default; display: block; }
+  </style>
+</head>
+<body>
+<div id="bv">
+  <canvas id="bside" width="162"></canvas>
+  <canvas id="bmain"></canvas>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ── Route back to tech blog ── */
+  var BLOG_URL = '{{ "/" | relative_url }}';
+
+  var bside = document.getElementById('bside');
+  var bmain = document.getElementById('bmain');
+  var sc = bside.getContext('2d');
+  var mc = bmain.getContext('2d');
+  var activeNav = 0;
+  var sideHits = [];
+
+  /* Device pixel ratio — refreshed on each init() call */
+  var dpr = 1;
+
+  var NAV = ['WORKS', 'JOURNAL', 'ANATOMY', 'WORDS', 'CONTACT'];
+  var C = {
+    red:  '#b52a1a', gold: '#d4a017', blue: '#1a4f8c',
+    blk:  '#0f0a04', grn:  '#1e6b3c', org:  '#c05a12',
+    pur:  '#5c2d7a', ink:  '#3a2e1a', dblu: '#003580'
+  };
+
+  /* ══════════════════════════════════════
+     ARTIST BLOG CONTENT
+     ——————————————————————————————————
+     Sections: WORKS, JOURNAL, ANATOMY,
+     WORDS, CONTACT
+     All content is art / life — zero tech
+  ══════════════════════════════════════ */
+  var PAGES = {
+    /* ── WORKS ── art pieces ── */
+    0: [
+      {
+        date: 'MAR 2025 · FIG.1',
+        title: 'WHERE KINGS FALL',
+        sub: 'ACRYLIC · GOLD LEAF©',
+        body: ['120 × 90 cm · CANVAS', 'GOLD ON CHARCOAL GROUND', '尸骸为王冠©', 'ANATOMY OF POWER'],
+        stk: 'SKETCH', aft: 'PAINTING★',
+        tags: ['ACRYLIC', 'GOLD LEAF', 'BODY'],
+        tc: C.gold, bc: 'rgba(212,160,23,0.07)'
+      },
+      {
+        date: 'DEC 2024 · FIG.2',
+        title: 'CROWN FOR THE',
+        sub: 'UNNAMED©',
+        body: ['STEEL + BLACK PATINA', 'COPPER WIRE TENDON', 'WEIGHT OF GLORY: 2kg', '© NOT DECORATION'],
+        stk: 'RAW', aft: 'OBJECT★',
+        tags: ['STEEL', 'CROWN', 'WEIGHT'],
+        tc: C.red, bc: 'rgba(181,42,26,0.07)'
+      },
+      {
+        date: 'SEP 2024 · FIG.3',
+        title: 'MÖBIUS SPINE',
+        sub: 'STERLING SILVER©',
+        body: ['内面 = 外面', 'ONE SURFACE · ONE BODY', 'WORN AT THE THROAT', '© MATH IS FLESH'],
+        stk: 'FLAT', aft: 'MÖBIUS★',
+        tags: ['SILVER', 'MÖBIUS', 'WEARABLE'],
+        tc: C.blue, bc: 'rgba(26,79,140,0.07)'
+      }
+    ],
+    /* ── JOURNAL ── artist notes ── */
+    1: [
+      {
+        date: 'APR 2025 · NOTE.1',
+        title: 'ON THE MARK',
+        sub: 'WHAT THE STROKE KNOWS©',
+        body: ['A STROKE IS A DECISION', '笔触 = 骨头的意志', 'NOT DECORATION', '© PURE INTENTION'],
+        stk: 'THOUGHT', aft: 'MARK★',
+        tags: ['STROKE', 'BODY', 'INTENTION'],
+        tc: C.grn, bc: 'rgba(30,107,60,0.07)'
+      },
+      {
+        date: 'FEB 2025 · NOTE.2',
+        title: 'STUDIO 3AM',
+        sub: 'BEFORE LANGUAGE©',
+        body: ['MAKING IN THE DARK', '黑暗之前是知觉', 'NO WORDS EXIST YET', '© SIGNAL ONLY'],
+        stk: 'LANGUAGE', aft: 'SILENCE★',
+        tags: ['STUDIO', 'NIGHT', 'PROCESS'],
+        tc: C.pur, bc: 'rgba(92,45,122,0.07)'
+      },
+      {
+        date: 'NOV 2024 · NOTE.3',
+        title: 'COLOR AS',
+        sub: 'ARGUMENT©',
+        body: ['RED: I AM HERE', 'BLACK: I WAS HERE', '黄金: 我不属于这里', '© PIGMENT SCREAMS'],
+        stk: 'QUIET', aft: 'COLOUR★',
+        tags: ['COLOUR', 'RED', 'ARGUMENT'],
+        tc: C.org, bc: 'rgba(192,90,18,0.07)'
+      }
+    ],
+    /* ── ANATOMY ── studio & materials ── */
+    2: [
+      {
+        date: '2025 · ANAT.1',
+        title: 'STUDIO',
+        sub: 'ANATOMY©',
+        body: ['PIGMENT · FIRE · METAL', 'PAPER THAT TEARS WELL', '身体是材料©', '© NO SHORTCUTS'],
+        stk: 'EMPTY', aft: 'FULL ROOM★',
+        tags: ['PIGMENT', 'FIRE', 'STUDIO'],
+        tc: C.org, bc: 'rgba(192,90,18,0.07)'
+      },
+      {
+        date: '2024 · ANAT.2',
+        title: 'TOOLS OF',
+        sub: 'UNMAKING©',
+        body: ['CHISEL · ACID · FLAME', '消除即创作', 'REMOVE UNTIL TRUE', '© SUBTRACT ©'],
+        stk: 'ADD', aft: 'REMOVE★',
+        tags: ['CHISEL', 'ACID', 'PROCESS'],
+        tc: C.red, bc: 'rgba(181,42,26,0.07)'
+      }
+    ],
+    /* ── WORDS ── poetry / text fragments ── */
+    3: [
+      {
+        date: 'MAR 2025 · WD.1',
+        title: 'SAMO©',
+        sub: 'FRAGMENTS ONLY',
+        body: ['每个词是一个标记', '每行都是呼吸', 'WORDS ARE PAINT', '© NO NAMES ©'],
+        stk: 'TEXT', aft: 'MARK★',
+        tags: ['SAMO', 'POETRY', '©'],
+        tc: C.blk, bc: 'rgba(15,10,4,0.07)'
+      },
+      {
+        date: 'JAN 2025 · WD.2',
+        title: 'DICTIONARY',
+        sub: 'OF WOUNDS©',
+        body: ['CROWN = TARGET', 'GOLD = BAIT', '名字 = 诊断', '© WORDS HURT MORE'],
+        stk: 'HEALING', aft: 'WOUND★',
+        tags: ['LANGUAGE', 'POWER', 'CROWN'],
+        tc: C.gold, bc: 'rgba(212,160,23,0.07)'
+      }
+    ],
+    /* ── CONTACT ── find the artist ── */
+    4: [
+      {
+        date: 'ALWAYS · CT.1',
+        title: 'FIND THE',
+        sub: 'ARTIST©',
+        body: ['github.com/gejifeng', 'SIGNAL: PREFERRED', '© ART IS CONTACT ©', 'FIND — IF YOU CAN'],
+        stk: 'HIDDEN', aft: 'VISIBLE★',
+        tags: ['CONTACT', 'SIGNAL', 'FIND'],
+        tc: C.blue, bc: 'rgba(26,79,140,0.07)'
+      }
+    ]
+  };
+
+  /* ══════════════════════════════════
+     UTILITY DRAWING FUNCTIONS
+  ══════════════════════════════════ */
+
+  function rnd(n) { return (Math.random() - 0.5) * 2 * n; }
+
+  function shakyLine(ctx, x1, y1, x2, y2, lw, col) {
+    ctx.save();
+    ctx.strokeStyle = col || C.blk; ctx.lineWidth = lw || 2.5; ctx.lineCap = 'round';
+    var d = Math.hypot(x2 - x1, y2 - y1), steps = Math.max(4, Math.ceil(d / 9));
+    ctx.beginPath(); ctx.moveTo(x1 + rnd(2), y1 + rnd(2));
+    for (var i = 1; i <= steps; i++) {
+      var t = i / steps;
+      ctx.lineTo(x1 + (x2 - x1) * t + rnd(3.5), y1 + (y2 - y1) * t + rnd(3.5));
+    }
+    ctx.stroke(); ctx.restore();
+  }
+
+  function shakyRect(ctx, x, y, w, h, lw, col) {
+    shakyLine(ctx, x, y, x + w, y, lw, col);
+    shakyLine(ctx, x + w, y, x + w, y + h, lw, col);
+    shakyLine(ctx, x + w, y + h, x, y + h, lw, col);
+    shakyLine(ctx, x, y + h, x, y, lw, col);
+  }
+
+  function crown(ctx, x, y, sz, col) {
+    col = col || C.gold; var s = sz;
+    ctx.save(); ctx.strokeStyle = col; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(x, y + s * 0.42); ctx.lineTo(x + s * 0.15, y + s * 0.08);
+    ctx.lineTo(x + s * 0.32, y + s * 0.3); ctx.lineTo(x + s * 0.5, y - s * 0.05);
+    ctx.lineTo(x + s * 0.68, y + s * 0.3); ctx.lineTo(x + s * 0.85, y + s * 0.08);
+    ctx.lineTo(x + s, y + s * 0.42); ctx.lineTo(x, y + s * 0.42);
+    ctx.stroke();
+    [0.15, 0.5, 0.85].forEach(function (t) {
+      ctx.beginPath(); ctx.arc(x + s * t, y + s * 0.08, s * 0.07, 0, Math.PI * 2);
+      ctx.fillStyle = col; ctx.fill();
+    });
+    ctx.restore();
+  }
+
+  function arrow(ctx, x1, y1, x2, y2, col, lw) {
+    shakyLine(ctx, x1, y1, x2, y2, lw || 1.8, col || C.ink);
+    var ang = Math.atan2(y2 - y1, x2 - x1), al = 10;
+    ctx.save(); ctx.strokeStyle = col || C.ink; ctx.lineWidth = lw || 1.8; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - al * Math.cos(ang - 0.5), y2 - al * Math.sin(ang - 0.5));
+    ctx.moveTo(x2, y2);
+    ctx.lineTo(x2 - al * Math.cos(ang + 0.5), y2 - al * Math.sin(ang + 0.5));
+    ctx.stroke(); ctx.restore();
+  }
+
+  /* ══════════════════════════════════
+     GRAFFITI BACKGROUND LAYER
+     Inspired by Basquiat: white/parchment
+     ground, black paint slabs, red scrawl
+     clusters, figure silhouettes, ink
+     splatters, big words, circled symbols,
+     thin arrow connectors, faint ruled
+     paper lines, SAMO ghost.
+     SF = scale factor for font sizes.
+  ══════════════════════════════════ */
+  function drawGraffiti(ctx, W, H, SF) {
+    ctx.save();
+
+    /* 1. large black paint slabs */
+    ctx.fillStyle = C.blk;
+    ctx.save(); ctx.globalAlpha = 0.13;
+    ctx.translate(W * 0.78, H * 0.08); ctx.rotate(0.05);
+    ctx.fillRect(0, 0, 28 * SF, H * 0.28);
+    ctx.restore();
+
+    ctx.save(); ctx.globalAlpha = 0.11;
+    ctx.translate(W * 0.04, H * 0.44); ctx.rotate(-0.04);
+    ctx.fillRect(0, 0, W * 0.38, 14 * SF);
+    ctx.restore();
+
+    ctx.save(); ctx.globalAlpha = 0.10;
+    ctx.translate(W * 0.82, H * 0.84); ctx.rotate(0.08);
+    ctx.fillRect(0, 0, 22 * SF, H * 0.1);
+    ctx.restore();
+
+    /* 2. red scrawl cluster — top left */
+    ctx.save(); ctx.globalAlpha = 0.18; ctx.fillStyle = C.red;
+    ctx.font = '900 ' + Math.round(11 * SF) + 'px "Permanent Marker",cursive';
+    ctx.save(); ctx.translate(W * 0.02, H * 0.06); ctx.rotate(-0.08);
+    ['LaboratoryTested', 'forStrength©', 'FLAME©', 'GRILLCHEESE'].forEach(function (l, i) {
+      ctx.save(); ctx.rotate(rnd(0.08)); ctx.fillText(l, rnd(8), i * 13 * SF + rnd(4)); ctx.restore();
+    });
+    ctx.restore();
+    ctx.save(); ctx.globalAlpha = 0.10; ctx.fillStyle = C.red;
+    ctx.translate(W * 0.04, H * 0.09); ctx.rotate(-0.15);
+    ctx.beginPath(); ctx.ellipse(0, 0, 46 * SF, 30 * SF, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.restore(); ctx.restore();
+
+    /* 3. large ghost words */
+    ctx.save(); ctx.globalAlpha = 0.11;
+    ctx.font = '900 ' + Math.round(54 * SF) + 'px "Permanent Marker",cursive';
+    ctx.fillStyle = C.red;
+    ctx.translate(W * 0.38, H * 0.42); ctx.rotate(0.04); ctx.fillText('FREE!', 0, 0);
+    ctx.restore();
+
+    ctx.save(); ctx.globalAlpha = 0.09;
+    ctx.font = '900 ' + Math.round(40 * SF) + 'px "Permanent Marker",cursive';
+    ctx.fillStyle = C.blk;
+    ctx.translate(W * 0.22, H * 0.74); ctx.rotate(-0.03); ctx.fillText('6,OOR', 0, 0);
+    ctx.restore();
+
+    /* 4. annotation block top-right */
+    ctx.save(); ctx.globalAlpha = 0.15;
+    ctx.font = '700 ' + Math.round(10 * SF) + 'px "Special Elite",cursive';
+    ctx.fillStyle = C.blk;
+    ctx.translate(W * 0.62, H * 0.05); ctx.rotate(0.01);
+    ['MOUTH TESTED', 'FFO R ESTHETICS.'].forEach(function (l, i) { ctx.fillText(l, 0, i * 14 * SF); });
+    ctx.strokeStyle = C.gold; ctx.lineWidth = 1.8;
+    ctx.strokeRect(0, -11 * SF, 46 * SF, 14 * SF);
+    ctx.restore();
+
+    /* 5. circled-X symbols */
+    function circledX(ctx, cx, cy, r, col, a) {
+      ctx.save(); ctx.globalAlpha = a; ctx.strokeStyle = col; ctx.lineWidth = 2.2;
+      ctx.beginPath(); ctx.arc(cx, cy, r * SF, 0, Math.PI * 2); ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(cx - r * SF * 0.65, cy - r * SF * 0.65); ctx.lineTo(cx + r * SF * 0.65, cy + r * SF * 0.65);
+      ctx.moveTo(cx + r * SF * 0.65, cy - r * SF * 0.65); ctx.lineTo(cx - r * SF * 0.65, cy + r * SF * 0.65);
+      ctx.stroke(); ctx.restore();
+    }
+    circledX(ctx, W * 0.68, H * 0.62, 14, C.grn, 0.20);
+    circledX(ctx, W * 0.14, H * 0.78, 10, C.red, 0.15);
+
+    /* 6. figure silhouettes */
+    ctx.save(); ctx.globalAlpha = 0.12; ctx.fillStyle = '#1a4f8c';
+    ctx.translate(W * 0.71, H * 0.22); ctx.scale(SF, SF);
+    ctx.beginPath(); ctx.arc(8, 0, 7, 0, Math.PI * 2); ctx.fill();
+    ctx.fillRect(4, 7, 8, 22);
+    ctx.fillRect(0, 29, 6, 18); ctx.fillRect(10, 29, 6, 18);
+    ctx.restore();
+
+    ctx.save(); ctx.globalAlpha = 0.13; ctx.fillStyle = '#2d6a2d';
+    ctx.translate(W * 0.1, H * 0.36); ctx.rotate(0.1);
+    ctx.beginPath(); ctx.ellipse(0, 0, 28 * SF, 36 * SF, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+
+    ctx.save(); ctx.globalAlpha = 0.13; ctx.fillStyle = '#7a1a10';
+    ctx.translate(W * 0.9, H * 0.28); ctx.rotate(0.2);
+    ctx.beginPath(); ctx.ellipse(0, 0, 18 * SF, 22 * SF, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+
+    /* 7. ink splatters */
+    [
+      { x: 0.38, y: 0.28, r: 4, c: C.blk, a: 0.18 }, { x: 0.52, y: 0.35, r: 3, c: C.blk, a: 0.15 },
+      { x: 0.6,  y: 0.44, r: 2.5, c: C.blk, a: 0.14 }, { x: 0.3, y: 0.55, r: 2, c: C.red, a: 0.16 },
+      { x: 0.75, y: 0.6,  r: 3,   c: C.blk, a: 0.12 }, { x: 0.18, y: 0.65, r: 2, c: C.red, a: 0.13 },
+      { x: 0.44, y: 0.7,  r: 4,   c: C.blk, a: 0.10 }, { x: 0.82, y: 0.72, r: 2, c: C.blk, a: 0.13 },
+      { x: 0.56, y: 0.8,  r: 2.5, c: C.red, a: 0.12 }, { x: 0.26, y: 0.86, r: 3, c: C.blk, a: 0.11 },
+      { x: 0.66, y: 0.18, r: 2,   c: C.blk, a: 0.14 }, { x: 0.48, y: 0.52, r: 1.5, c: C.red, a: 0.15 }
+    ].forEach(function (d) {
+      ctx.save(); ctx.globalAlpha = d.a; ctx.fillStyle = d.c;
+      ctx.beginPath(); ctx.arc(W * d.x, H * d.y, d.r * SF, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    });
+
+    /* 8. thin arrow connectors */
+    ctx.save(); ctx.globalAlpha = 0.12;
+    arrow(ctx, W * 0.32, H * 0.32, W * 0.28, H * 0.4,  C.blk, 1.2);
+    arrow(ctx, W * 0.55, H * 0.48, W * 0.68, H * 0.55, C.blk, 1.2);
+    arrow(ctx, W * 0.4,  H * 0.6,  W * 0.34, H * 0.68, C.red, 1.2);
+    ctx.restore();
+
+    /* 9. scattered annotation words */
+    [
+      { t: '"ANY BROKEN COIL"',        x:0.01, y:0.82,  r:-0.02, s:9,  c:C.blk, a:0.16 },
+      { t: 'No.73',                    x:0.01, y:0.84,  r:0,     s:8,  c:C.blk, a:0.16 },
+      { t: 'ME.',                      x:0.25, y:0.32,  r:0.03,  s:9,  c:C.blk, a:0.18 },
+      { t: 'ZU',                       x:0.2,  y:0.46,  r:-0.01, s:10, c:C.blk, a:0.16 },
+      { t: 'WHITE GLOVES',             x:0.58, y:0.44,  r:0.02,  s:8,  c:C.blk, a:0.14 },
+      { t: 'BIG DRUM',                 x:0.68, y:0.9,   r:0.01,  s:9,  c:C.blk, a:0.14 },
+      { t: 'Hawkman.',                 x:0.72, y:0.68,  r:-0.02, s:9,  c:C.red, a:0.18 },
+      { t: 'BLUE',                     x:0.48, y:0.54,  r:0.03,  s:11, c:'#1a4f8c', a:0.18 },
+      { t: 'GOOD PLACE FOR A HAIRCUT', x:0.52, y:0.74,  r:0.01,  s:8,  c:C.blk, a:0.13 },
+      { t: 'FLAKEE KCF',               x:0.35, y:0.8,   r:-0.02, s:9,  c:C.blk, a:0.15 },
+      { t: 'CORII',                    x:0.33, y:0.73,  r:0.04,  s:13, c:C.blk, a:0.14 }
+    ].forEach(function (d) {
+      ctx.save(); ctx.globalAlpha = d.a;
+      ctx.font = '700 ' + Math.round(d.s * SF) + 'px "Special Elite",cursive';
+      ctx.fillStyle = d.c; ctx.translate(W * d.x, H * d.y); ctx.rotate(d.r); ctx.fillText(d.t, 0, 0);
+      ctx.restore();
+    });
+
+    /* 10. SAMO ghost */
+    ctx.save(); ctx.globalAlpha = 0.05;
+    ctx.font = '900 ' + Math.round(70 * SF) + 'px "Permanent Marker",cursive';
+    ctx.fillStyle = C.blk;
+    ctx.translate(W * 0.05, H * 0.58); ctx.rotate(-0.22); ctx.fillText('SAMO', 0, 0);
+    ctx.restore();
+
+    /* 11. faint paper ruled lines */
+    ctx.save(); ctx.strokeStyle = '#c0b09022'; ctx.lineWidth = 1;
+    var lineGap = Math.round(32 * SF);
+    for (var y = lineGap; y < H; y += lineGap) {
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
+    }
+    ctx.restore();
+
+    ctx.restore();
+  }
+
+  /* ══════════════════════════════════
+     SIDEBAR
+  ══════════════════════════════════ */
+  function drawSide(SF) {
+    var logW = 162, logH = window.innerHeight;
+
+    /* Apply DPR scale so all coordinates are in logical CSS pixels */
+    sc.setTransform(dpr, 0, 0, dpr, 0, 0);
+    sc.clearRect(0, 0, logW, logH);
+
+    var W = logW, H = logH;
+
+    /* parchment background */
+    sc.fillStyle = '#ede6cc'; sc.fillRect(0, 0, W, H);
+
+    /* ruled lines */
+    sc.save(); sc.strokeStyle = '#c0b09028'; sc.lineWidth = 1;
+    var ruleGap = Math.round(30 * SF);
+    for (var y = ruleGap; y < H; y += ruleGap) {
+      sc.beginPath(); sc.moveTo(0, y); sc.lineTo(W, y); sc.stroke();
+    }
+    sc.restore();
+
+    /* ghost red scrawl */
+    sc.save(); sc.globalAlpha = 0.07; sc.fillStyle = C.red;
+    sc.font = '700 ' + Math.round(9 * SF) + 'px "Special Elite",cursive';
+    sc.translate(4, H * 0.72); sc.rotate(-0.3);
+    ['tested', 'for', 'strength'].forEach(function (l, i) {
+      sc.fillText(l, rnd(6), i * 11 * SF);
+    });
+    sc.restore();
+
+    shakyLine(sc, W - 1, 0, W - 1, H, 3.5, C.blk);
+
+    /* crown + name */
+    var crownSz = Math.round(38 * SF);
+    var crownY  = Math.round(18 * SF);
+    crown(sc, 8, crownY, crownSz, C.gold);
+
+    var nameY = Math.round(70 * SF);
+    sc.fillStyle = C.blk;
+    sc.font = '900 ' + Math.round(17 * SF) + 'px "Permanent Marker",cursive';
+    sc.fillText('JIFENG', 8, nameY);
+    sc.fillStyle = C.red;
+    sc.font = '900 ' + Math.round(11 * SF) + 'px "Permanent Marker",cursive';
+    sc.fillText('©', Math.round(103 * SF), Math.round(60 * SF));
+    sc.fillStyle = C.red;
+    sc.font = '700 ' + Math.round(9 * SF) + 'px "Special Elite",cursive';
+    sc.fillText('PAINTER · MAKER', 8, Math.round(84 * SF));
+
+    var divY = Math.round(92 * SF);
+    shakyLine(sc, 6, divY, W - 6, divY, 2.5, C.blk);
+
+    /* ⌨ TECH BLOG back button */
+    var bY = Math.round(100 * SF);
+    var bH = Math.round(28 * SF);
+    var bW = W - 14;
+    shakyRect(sc, 7, bY, bW, bH, 2.5, C.red);
+    sc.fillStyle = C.red;
+    sc.font = '900 ' + Math.round(10 * SF) + 'px "Permanent Marker",cursive';
+    sc.fillText('\u2328 TECH BLOG', 13, bY + Math.round(18 * SF));
+
+    var btnDivY = bY + bH + Math.round(8 * SF);
+    shakyLine(sc, 6, btnDivY, W - 6, btnDivY, 2, C.ink);
+
+    /* store hit areas in logical (CSS) pixel space */
+    sideHits = [];
+    sideHits.back = { x: 7, y: bY, w: bW, h: bH };
+
+    var ny = Math.round(162 * SF);
+    var navStep = Math.round(36 * SF);
+    var nc = [C.blue, C.red, C.grn, C.gold, C.pur];
+    NAV.forEach(function (label, i) {
+      var act = (i === activeNav), col = nc[i];
+      var rowH = Math.round(26 * SF);
+      if (act) {
+        shakyRect(sc, 4, ny - Math.round(17 * SF), W - 8, rowH, 2.5, col);
+        sc.fillStyle = col;
+        sc.font = '900 ' + Math.round(13 * SF) + 'px "Permanent Marker",cursive';
+      } else {
+        sc.fillStyle = '#7a6a48';
+        sc.font = '700 ' + Math.round(12 * SF) + 'px "Special Elite",cursive';
+      }
+      sc.fillText((act ? '\u25B6 ' : '') + label, 10, ny);
+      if (act) crown(sc, W - Math.round(34 * SF), ny - Math.round(16 * SF), Math.round(24 * SF), col);
+      sideHits.push({ x: 0, y: ny - Math.round(19 * SF), w: W, h: rowH + Math.round(8 * SF), idx: i });
+      ny += navStep;
+    });
+
+    sc.fillStyle = '#9b8860';
+    sc.font = '700 ' + Math.round(8 * SF) + 'px "Special Elite",cursive';
+    sc.fillText('\u00A9 SAMO WAS HERE', 8, H - Math.round(10 * SF));
+  }
+
+  /* ══════════════════════════════════
+     POST CARD
+  ══════════════════════════════════ */
+  function drawPost(ctx, p, ox, oy, rot, bw, SF) {
+    ctx.save(); ctx.translate(ox, oy); ctx.rotate(rot);
+    var lh  = Math.round(15 * SF);
+    var pad = Math.round(7  * SF);
+
+    /* date */
+    ctx.fillStyle = '#9b8860';
+    ctx.font = '700 ' + Math.round(8.5 * SF) + 'px "Special Elite",cursive';
+    ctx.fillText(p.date, 0, 0);
+
+    /* title block */
+    var th = Math.round(40 * SF);
+    ctx.fillStyle = p.bc; ctx.fillRect(0, Math.round(6 * SF), bw, th);
+    shakyRect(ctx, 0, Math.round(6 * SF), bw, th, 3, p.tc);
+    ctx.fillStyle = p.tc;
+    ctx.font = '900 ' + Math.round(15 * SF) + 'px "Permanent Marker",cursive';
+    ctx.fillText(p.title, pad, Math.round(24 * SF), bw - pad * 2);
+    ctx.font = '700 ' + Math.round(10 * SF) + 'px "Special Elite",cursive';
+    ctx.fillText(p.sub,   pad, Math.round(39 * SF), bw - pad * 2);
+
+    /* body lines */
+    var by = th + Math.round(18 * SF);
+    var bodyColours = [C.blk, C.red, C.blue, C.grn];
+    p.body.forEach(function (line, i) {
+      ctx.save(); ctx.translate(rnd(4), 0); ctx.rotate(rnd(0.016));
+      ctx.fillStyle = bodyColours[i % 4];
+      ctx.font = '700 ' + Math.round(10 * SF) + 'px "Special Elite",cursive';
+      ctx.fillText(line, 2, by + i * lh, bw); ctx.restore();
+    });
+
+    /* strikethrough old → new */
+    var sy = by + p.body.length * lh + Math.round(6 * SF);
+    ctx.fillStyle = C.blk;
+    ctx.font = '900 ' + Math.round(11 * SF) + 'px "Permanent Marker",cursive';
+    ctx.fillText(p.stk, 2, sy);
+    var sw = ctx.measureText(p.stk).width;
+    ctx.strokeStyle = C.red; ctx.lineWidth = Math.round(2.8 * SF);
+    ctx.beginPath(); ctx.moveTo(0, sy - Math.round(4 * SF)); ctx.lineTo(sw + Math.round(4 * SF), sy - Math.round(4 * SF)); ctx.stroke();
+    ctx.fillStyle = C.red; ctx.fillText(' \u2192 ' + p.aft, sw + Math.round(4 * SF), sy, bw);
+
+    /* tags */
+    var tx = 0, ty = sy + Math.round(16 * SF);
+    var tc = [p.tc, C.red, C.blue, C.grn];
+    p.tags.forEach(function (tag, ti) {
+      var col = tc[ti % tc.length];
+      ctx.font = '700 ' + Math.round(8.5 * SF) + 'px "Special Elite",cursive';
+      var tw = ctx.measureText(tag).width + Math.round(8 * SF);
+      shakyRect(ctx, tx, ty - Math.round(11 * SF), tw, Math.round(13 * SF), 1.5, col);
+      ctx.fillStyle = col; ctx.fillText(tag, tx + Math.round(4 * SF), ty, tw);
+      tx += tw + Math.round(5 * SF);
+      if (tx > bw - Math.round(20 * SF)) { tx = 0; ty += Math.round(16 * SF); }
+    });
+
+    ctx.restore();
+  }
+
+  /* ══════════════════════════════════
+     MAIN CANVAS
+  ══════════════════════════════════ */
+  function drawMain(SF) {
+    var logW = window.innerWidth - 162;
+    var logH = window.innerHeight;
+
+    /* Apply DPR scale */
+    mc.setTransform(dpr, 0, 0, dpr, 0, 0);
+    mc.clearRect(0, 0, logW, logH);
+
+    var W = logW, H = logH;
+    mc.fillStyle = '#f5f0e2'; mc.fillRect(0, 0, W, H);
+
+    drawGraffiti(mc, W, H, SF);
+
+    /* page label */
+    mc.save(); mc.translate(16, 20); mc.rotate(-0.015);
+    mc.fillStyle = C.ink;
+    mc.font = '700 ' + Math.round(9 * SF) + 'px "Special Elite",cursive';
+    mc.fillText('\u00A9 JIFENG \u2014 ' + NAV[activeNav] + '  /  FIG.' + (activeNav + 1), 0, 0);
+    mc.restore();
+
+    crown(mc, W / 2 - Math.round(24 * SF), 8, Math.round(48 * SF), C.gold);
+
+    var posts = PAGES[activeNav] || PAGES[0];
+    var cardW = Math.min(Math.round(218 * SF), Math.round(W * 0.43));
+    var lay = [
+      { x: 14,                              y: Math.round(55 * SF),                rot: -0.022 },
+      { x: Math.min(W * 0.47, W - cardW - 14), y: Math.round(60 * SF),            rot:  0.03  },
+      { x: 20,                              y: Math.min(H * 0.52, H - Math.round(200 * SF)), rot: -0.036 }
+    ];
+
+    posts.forEach(function (p, i) {
+      if (i < 3) drawPost(mc, p, lay[i].x, lay[i].y, lay[i].rot, cardW, SF);
+    });
+
+    if (posts.length >= 2) arrow(mc, lay[0].x + cardW - 10,    lay[0].y + Math.round(50 * SF), lay[1].x + 8, lay[1].y + Math.round(50 * SF), C.ink);
+    if (posts.length >= 3) arrow(mc, lay[0].x + Math.round(55 * SF), lay[0].y + Math.round(128 * SF), lay[2].x + Math.round(55 * SF), lay[2].y + 10, C.ink);
+
+    /* bottom banner */
+    mc.save(); mc.translate(W * 0.16, H - Math.round(28 * SF)); mc.rotate(-0.01);
+    var bannerW = Math.min(Math.round(228 * SF), Math.round(W * 0.54));
+    var bannerH = Math.round(22 * SF);
+    shakyRect(mc, 0, -Math.round(16 * SF), bannerW, bannerH, 2.5, C.blk);
+    mc.fillStyle = C.blk;
+    mc.font = '700 ' + Math.round(12 * SF) + 'px "Permanent Marker",cursive';
+    mc.fillText('\u2605  SAMO WAS HERE  \u2605', 6, -1);
+    mc.restore();
+  }
+
+  /* ══════════════════════════════════
+     INIT & EVENTS
+  ══════════════════════════════════ */
+  function init() {
+    /* Refresh DPR (changes when moving between displays) */
+    dpr = window.devicePixelRatio || 1;
+
+    var logSideW = 162;
+    var logH     = window.innerHeight;
+    var logMainW = Math.max(1, window.innerWidth - logSideW);
+
+    /* Scale factor: calibrated so a 1080p screen ≈ Chirpy's 16 px body.
+       Reference dims: 540 px height  /  600 px main-width → SF ≈ 1.8 on FHD,
+       ≈ 1.42 on a 768 px-tall laptop, clamped to [0.85, 1.8]. */
+    var SF = Math.max(0.85, Math.min(1.8, Math.min(logMainW / 600, logH / 540)));
+
+    /* ── Sidebar canvas ── physical size = logical × DPR */
+    bside.width  = Math.round(logSideW * dpr);
+    bside.height = Math.round(logH     * dpr);
+    bside.style.width  = logSideW + 'px';
+    bside.style.height = logH     + 'px';
+
+    /* ── Main canvas ── */
+    bmain.width  = Math.round(logMainW * dpr);
+    bmain.height = Math.round(logH     * dpr);
+    bmain.style.width  = logMainW + 'px';
+    bmain.style.height = logH     + 'px';
+
+    drawSide(SF);
+    drawMain(SF);
+  }
+
+  bside.addEventListener('click', function (e) {
+    var r  = bside.getBoundingClientRect();
+    var mx = e.clientX - r.left, my = e.clientY - r.top;
+
+    /* back to tech blog */
+    var b = sideHits.back;
+    if (b && mx >= b.x && mx <= b.x + b.w && my >= b.y && my <= b.y + b.h) {
+      window.location.href = BLOG_URL;
+      return;
+    }
+
+    /* nav item clicks */
+    sideHits.forEach(function (h) {
+      if (h && h.idx != null && mx >= h.x && mx <= h.x + h.w && my >= h.y && my <= h.y + h.h) {
+        if (h.idx !== activeNav) { activeNav = h.idx; init(); }
+      }
+    });
+  });
+
+  /* cursor feedback on sidebar hover */
+  bside.addEventListener('mousemove', function (e) {
+    var r  = bside.getBoundingClientRect();
+    var mx = e.clientX - r.left, my = e.clientY - r.top;
+    var hit = false;
+    var b = sideHits.back;
+    if (b && mx >= b.x && mx <= b.x + b.w && my >= b.y && my <= b.y + b.h) hit = true;
+    sideHits.forEach(function (h) {
+      if (h && h.idx != null && mx >= h.x && mx <= h.x + h.w && my >= h.y && my <= h.y + h.h) hit = true;
+    });
+    bside.style.cursor = hit ? 'pointer' : 'default';
+  });
+
+  window.addEventListener('resize', init);
+
+  /* draw immediately with fallback fonts, then redraw with web fonts */
+  init();
+  document.fonts.ready.then(function () { init(); });
+
+})();
+</script>
+</body>
+</html>
