@@ -16,13 +16,14 @@
       width: 100%;
       height: 100vh;
     }
-    #bside { flex-shrink: 0; cursor: pointer; display: block; }
+    #bside { flex-shrink: 0; cursor: pointer; display: block; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
     #bmain { flex: 1; cursor: default; display: block; }
+    body { -webkit-tap-highlight-color: transparent; }
   </style>
 </head>
 <body>
 <div id="bv">
-  <canvas id="bside" width="162"></canvas>
+  <canvas id="bside" width="188"></canvas>
   <canvas id="bmain"></canvas>
 </div>
 
@@ -39,6 +40,7 @@
   var mc = bmain.getContext('2d');
   var activeNav = 0;
   var sideHits = [];
+  var isMobile = false;
 
   /* Device pixel ratio — refreshed on each init() call */
   var dpr = 1;
@@ -385,7 +387,62 @@
      SIDEBAR
   ══════════════════════════════════ */
   function drawSide(SF) {
-    var logW = 162, logH = window.innerHeight;
+    /* ── Mobile: horizontal top-bar ── */
+    if (isMobile) {
+      var W = window.innerWidth, H = 76;
+      sc.setTransform(dpr, 0, 0, dpr, 0, 0);
+      sc.clearRect(0, 0, W, H);
+
+      sc.fillStyle = '#ede6cc'; sc.fillRect(0, 0, W, H);
+      sc.save(); sc.strokeStyle = '#c0b09028'; sc.lineWidth = 1;
+      [22, 44, 66].forEach(function(y) { sc.beginPath(); sc.moveTo(0, y); sc.lineTo(W, y); sc.stroke(); });
+      sc.restore();
+      sc.save(); sc.globalAlpha = 0.065; sc.fillStyle = C.red;
+      sc.font = '700 8px "Special Elite",cursive';
+      sc.translate(W * 0.36, 70); sc.rotate(-0.04);
+      sc.fillText('tested for strength', 0, 0);
+      sc.restore();
+      shakyLine(sc, 0, H - 1.5, W, H - 1.5, 3, C.blk);
+
+      /* crown + name block (far left) */
+      crown(sc, 5, 4, 28, C.gold);
+      sc.fillStyle = C.blk;
+      sc.font = '900 12px "Permanent Marker",cursive';
+      sc.fillText('JIFENG', 5, H - 7);
+
+      /* TECH BLOG back button */
+      var bX = 44, bY = 7, bW = Math.round(52 * SF), bHt = H - 15;
+      shakyRect(sc, bX, bY, bW, bHt, 2, C.red);
+      sc.fillStyle = C.red;
+      sc.font = '900 9px "Permanent Marker",cursive';
+      sc.fillText('\u2328BLOG', bX + 4, bY + bHt - 5);
+
+      sideHits = [];
+      sideHits.back = { x: bX, y: bY, w: bW, h: bHt };
+
+      /* nav items spread across the bar */
+      var nc = [C.blue, C.red, C.grn, C.gold, C.pur];
+      var navX0 = bX + bW + 6;
+      var navSlot = Math.floor((W - navX0 - 4) / NAV.length);
+      NAV.forEach(function(label, i) {
+        var act = (i === activeNav), col = nc[i];
+        var nx = navX0 + i * navSlot;
+        sc.fillStyle = act ? col : '#7a6a48';
+        sc.font = act
+          ? '900 ' + Math.round(11 * SF) + 'px "Permanent Marker",cursive'
+          : '700 ' + Math.round(9  * SF) + 'px "Special Elite",cursive';
+        sc.fillText(label, nx + 2, H - 9);
+        if (act) shakyLine(sc, nx, H - 3, nx + navSlot - 4, H - 3, 3, col);
+        sideHits.push({ x: nx, y: 0, w: navSlot, h: H, idx: i });
+      });
+
+      sc.fillStyle = '#9b8860';
+      sc.font = '700 7px "Special Elite",cursive';
+      sc.fillText('\u00A9', W - 10, H - 5);
+      return;
+    }
+
+    var logW = 188, logH = window.innerHeight;
 
     /* Apply DPR scale so all coordinates are in logical CSS pixels */
     sc.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -450,8 +507,10 @@
     sideHits = [];
     sideHits.back = { x: 7, y: bY, w: bW, h: bH };
 
-    var ny = Math.round(162 * SF);
-    var navStep = Math.round(36 * SF);
+    /* Nav items distributed across 26%–76% of screen height — no dead zone */
+    var navStartY = Math.round(Math.max(162 * SF, H * 0.26));
+    var navStep   = Math.round(Math.max(42 * SF, H * 0.10));
+    var ny = navStartY;
     var nc = [C.blue, C.red, C.grn, C.gold, C.pur];
     NAV.forEach(function (label, i) {
       var act = (i === activeNav), col = nc[i];
@@ -470,6 +529,21 @@
       ny += navStep;
     });
 
+    /* Ghost fill — large © and vertical SAMO anchor the dead space below nav */
+    sc.save(); sc.globalAlpha = 0.055;
+    sc.font = '900 ' + Math.round(100 * SF) + 'px "Permanent Marker",cursive';
+    sc.fillStyle = C.blk;
+    sc.save(); sc.translate(W * 0.06, H * 0.94); sc.rotate(0.07);
+    sc.fillText('\u00A9', 0, 0);
+    sc.restore(); sc.restore();
+
+    sc.save(); sc.globalAlpha = 0.032;
+    sc.font = '900 ' + Math.round(32 * SF) + 'px "Permanent Marker",cursive';
+    sc.fillStyle = C.red;
+    sc.save(); sc.translate(W * 0.52, H * 0.72); sc.rotate(-1.48);
+    sc.fillText('SAMO', 0, 0);
+    sc.restore(); sc.restore();
+
     sc.fillStyle = '#9b8860';
     sc.font = '700 ' + Math.round(8 * SF) + 'px "Special Elite",cursive';
     sc.fillText('\u00A9 SAMO WAS HERE', 8, H - Math.round(10 * SF));
@@ -480,7 +554,7 @@
   ══════════════════════════════════ */
   function drawPost(ctx, p, ox, oy, rot, bw, SF) {
     ctx.save(); ctx.translate(ox, oy); ctx.rotate(rot);
-    var lh  = Math.round(15 * SF);
+    var lh  = Math.round(16 * SF);
     var pad = Math.round(7  * SF);
 
     /* date */
@@ -488,15 +562,15 @@
     ctx.font = '700 ' + Math.round(8.5 * SF) + 'px "Special Elite",cursive';
     ctx.fillText(p.date, 0, 0);
 
-    /* title block */
-    var th = Math.round(40 * SF);
+    /* title block — taller, more typographic impact */
+    var th = Math.round(50 * SF);
     ctx.fillStyle = p.bc; ctx.fillRect(0, Math.round(6 * SF), bw, th);
-    shakyRect(ctx, 0, Math.round(6 * SF), bw, th, 3, p.tc);
+    shakyRect(ctx, 0, Math.round(6 * SF), bw, th, 4, p.tc);
     ctx.fillStyle = p.tc;
-    ctx.font = '900 ' + Math.round(15 * SF) + 'px "Permanent Marker",cursive';
-    ctx.fillText(p.title, pad, Math.round(24 * SF), bw - pad * 2);
-    ctx.font = '700 ' + Math.round(10 * SF) + 'px "Special Elite",cursive';
-    ctx.fillText(p.sub,   pad, Math.round(39 * SF), bw - pad * 2);
+    ctx.font = '900 ' + Math.round(18 * SF) + 'px "Permanent Marker",cursive';
+    ctx.fillText(p.title, pad, Math.round(29 * SF), bw - pad * 2);
+    ctx.font = '700 ' + Math.round(11.5 * SF) + 'px "Special Elite",cursive';
+    ctx.fillText(p.sub,   pad, Math.round(47 * SF), bw - pad * 2);
 
     /* body lines */
     var by = th + Math.round(18 * SF);
@@ -538,7 +612,50 @@
      MAIN CANVAS
   ══════════════════════════════════ */
   function drawMain(SF) {
-    var logW = window.innerWidth - 162;
+    /* ── Mobile: portrait stacked layout ── */
+    if (isMobile) {
+      var W = window.innerWidth, H = Math.max(1, window.innerHeight - 76);
+      mc.setTransform(dpr, 0, 0, dpr, 0, 0);
+      mc.clearRect(0, 0, W, H);
+      mc.fillStyle = '#f5f0e2'; mc.fillRect(0, 0, W, H);
+      drawGraffiti(mc, W, H, SF);
+
+      /* crown centred, label right of it */
+      crown(mc, W * 0.36 - Math.round(18 * SF), Math.round(4 * SF), Math.round(38 * SF), C.gold);
+      mc.save(); mc.translate(W * 0.56, Math.round(18 * SF)); mc.rotate(0.04);
+      mc.fillStyle = C.ink;
+      mc.font = '700 ' + Math.round(8 * SF) + 'px "Special Elite",cursive';
+      mc.fillText('\u00A9 ' + NAV[activeNav] + ' / FIG.' + (activeNav + 1), 0, 0);
+      mc.restore();
+
+      var posts = PAGES[activeNav] || PAGES[0];
+      var cW = Math.round(W * 0.87);
+      var xOff = Math.round(W * 0.04);
+      var mlay = [
+        { x: xOff,               y: Math.round(H * 0.04),  rot: -0.030 },
+        { x: Math.round(W*0.09), y: Math.round(H * 0.37),  rot:  0.038 },
+        { x: xOff,               y: Math.round(H * 0.67),  rot: -0.022 }
+      ];
+      posts.forEach(function(p, i) {
+        if (i < mlay.length) drawPost(mc, p, mlay[i].x, mlay[i].y, mlay[i].rot, cW, SF);
+      });
+      if (posts.length >= 2) arrow(mc, mlay[0].x + cW * 0.55, mlay[0].y + Math.round(118 * SF),
+                                       mlay[1].x + cW * 0.40, mlay[1].y + Math.round(4  * SF), C.ink);
+      if (posts.length >= 3) arrow(mc, mlay[1].x + cW * 0.50, mlay[1].y + Math.round(118 * SF),
+                                       mlay[2].x + cW * 0.50, mlay[2].y + Math.round(4  * SF), C.red);
+
+      /* mobile bottom banner */
+      mc.save(); mc.translate(W * 0.04, H - Math.round(20 * SF)); mc.rotate(-0.018);
+      var mbW = Math.round(W * 0.68);
+      shakyRect(mc, 0, -Math.round(16 * SF), mbW, Math.round(22 * SF), 2.5, C.blk);
+      mc.fillStyle = C.blk;
+      mc.font = '700 ' + Math.round(11 * SF) + 'px "Permanent Marker",cursive';
+      mc.fillText('\u2605  SAMO WAS HERE  \u2605', 5, -2);
+      mc.restore();
+      return;
+    }
+
+    var logW = window.innerWidth - 188;
     var logH = window.innerHeight;
 
     /* Apply DPR scale */
@@ -550,38 +667,50 @@
 
     drawGraffiti(mc, W, H, SF);
 
-    /* page label */
-    mc.save(); mc.translate(16, 20); mc.rotate(-0.015);
+    /* diagonal tension line — raw Basquiat-style axis */
+    mc.save(); mc.globalAlpha = 0.07;
+    shakyLine(mc, W * 0.60, H * 0.01, W * 0.86, H * 0.93, 4.5, C.red);
+    mc.restore();
+
+    /* page label — angled, offset right of crown for asymmetric tension */
+    mc.save(); mc.translate(W * 0.62, Math.round(24 * SF)); mc.rotate(0.065);
     mc.fillStyle = C.ink;
-    mc.font = '700 ' + Math.round(9 * SF) + 'px "Special Elite",cursive';
+    mc.font = '700 ' + Math.round(9.5 * SF) + 'px "Special Elite",cursive';
     mc.fillText('\u00A9 JIFENG \u2014 ' + NAV[activeNav] + '  /  FIG.' + (activeNav + 1), 0, 0);
     mc.restore();
 
-    crown(mc, W / 2 - Math.round(24 * SF), 8, Math.round(48 * SF), C.gold);
+    /* crown — larger, slightly off-centre for visual tension */
+    crown(mc, W * 0.42 - Math.round(28 * SF), Math.round(5 * SF), Math.round(60 * SF), C.gold);
 
     var posts = PAGES[activeNav] || PAGES[0];
-    var cardW = Math.min(Math.round(218 * SF), Math.round(W * 0.43));
+    /* Variable card widths: hero (wide) / accent (narrow) / mid — deliberately mismatched */
+    var cW0 = Math.min(Math.round(W * 0.46), Math.round(234 * SF));
+    var cW1 = Math.min(Math.round(W * 0.28), Math.round(148 * SF));
+    var cW2 = Math.min(Math.round(W * 0.42), Math.round(218 * SF));
+
+    /* Diagonal Z-scatter: upper-left → upper-right → lower-center */
     var lay = [
-      { x: 14,                              y: Math.round(55 * SF),                rot: -0.022 },
-      { x: Math.min(W * 0.47, W - cardW - 14), y: Math.round(60 * SF),            rot:  0.03  },
-      { x: 20,                              y: Math.min(H * 0.52, H - Math.round(200 * SF)), rot: -0.036 }
+      { x: Math.round(W * 0.02), y: Math.round(H * 0.07),  rot: -0.090, w: cW0 },
+      { x: Math.round(W * 0.58), y: Math.round(H * 0.11),  rot:  0.075, w: cW1 },
+      { x: Math.round(W * 0.15), y: Math.round(H * 0.50),  rot: -0.115, w: cW2 }
     ];
 
     posts.forEach(function (p, i) {
-      if (i < 3) drawPost(mc, p, lay[i].x, lay[i].y, lay[i].rot, cardW, SF);
+      if (i < lay.length) drawPost(mc, p, lay[i].x, lay[i].y, lay[i].rot, lay[i].w, SF);
     });
 
-    if (posts.length >= 2) arrow(mc, lay[0].x + cardW - 10,    lay[0].y + Math.round(50 * SF), lay[1].x + 8, lay[1].y + Math.round(50 * SF), C.ink);
-    if (posts.length >= 3) arrow(mc, lay[0].x + Math.round(55 * SF), lay[0].y + Math.round(128 * SF), lay[2].x + Math.round(55 * SF), lay[2].y + 10, C.ink);
+    /* Diagonal pull arrows — compositional tension, not a rote grid */
+    if (posts.length >= 2) arrow(mc, lay[0].x + cW0 * 0.80, lay[0].y + Math.round(68 * SF), lay[1].x + cW1 * 0.10, lay[1].y + Math.round(22 * SF), C.ink);
+    if (posts.length >= 3) arrow(mc, lay[1].x + cW1 * 0.40, lay[1].y + Math.round(95 * SF), lay[2].x + cW2 * 0.60, lay[2].y + Math.round(6  * SF), C.red);
 
-    /* bottom banner */
-    mc.save(); mc.translate(W * 0.16, H - Math.round(28 * SF)); mc.rotate(-0.01);
-    var bannerW = Math.min(Math.round(228 * SF), Math.round(W * 0.54));
-    var bannerH = Math.round(22 * SF);
-    shakyRect(mc, 0, -Math.round(16 * SF), bannerW, bannerH, 2.5, C.blk);
+    /* bottom banner — raw, wide, dragged left, aggressive tilt */
+    mc.save(); mc.translate(W * 0.03, H - Math.round(42 * SF)); mc.rotate(-0.030);
+    var bannerW = Math.min(Math.round(272 * SF), Math.round(W * 0.62));
+    var bannerH = Math.round(28 * SF);
+    shakyRect(mc, 0, -Math.round(21 * SF), bannerW, bannerH, 3.5, C.blk);
     mc.fillStyle = C.blk;
-    mc.font = '700 ' + Math.round(12 * SF) + 'px "Permanent Marker",cursive';
-    mc.fillText('\u2605  SAMO WAS HERE  \u2605', 6, -1);
+    mc.font = '700 ' + Math.round(13 * SF) + 'px "Permanent Marker",cursive';
+    mc.fillText('\u2605  SAMO WAS HERE  \u2605', 8, -3);
     mc.restore();
   }
 
@@ -592,26 +721,45 @@
     /* Refresh DPR (changes when moving between displays) */
     dpr = window.devicePixelRatio || 1;
 
-    var logSideW = 162;
-    var logH     = window.innerHeight;
-    var logMainW = Math.max(1, window.innerWidth - logSideW);
+    isMobile = window.innerWidth < 600;
+    document.getElementById('bv').style.flexDirection = isMobile ? 'column' : 'row';
 
-    /* Scale factor: calibrated so a 1080p screen ≈ Chirpy's 16 px body.
-       Reference dims: 540 px height  /  600 px main-width → SF ≈ 1.8 on FHD,
-       ≈ 1.42 on a 768 px-tall laptop, clamped to [0.85, 1.8]. */
-    var SF = Math.max(0.85, Math.min(1.8, Math.min(logMainW / 600, logH / 540)));
+    var logH = window.innerHeight;
+    var logSideW, logSideH, logMainW, logMainH, SF;
 
-    /* ── Sidebar canvas ── physical size = logical × DPR */
-    bside.width  = Math.round(logSideW * dpr);
-    bside.height = Math.round(logH     * dpr);
-    bside.style.width  = logSideW + 'px';
-    bside.style.height = logH     + 'px';
+    if (isMobile) {
+      logSideW  = window.innerWidth;
+      logSideH  = 76;
+      logMainW  = window.innerWidth;
+      logMainH  = Math.max(1, logH - logSideH);
+      SF        = Math.max(0.70, Math.min(1.05, logMainW / 420));
 
-    /* ── Main canvas ── */
-    bmain.width  = Math.round(logMainW * dpr);
-    bmain.height = Math.round(logH     * dpr);
-    bmain.style.width  = logMainW + 'px';
-    bmain.style.height = logH     + 'px';
+      bside.width  = Math.round(logSideW * dpr);
+      bside.height = Math.round(logSideH * dpr);
+      bside.style.width  = logSideW + 'px';
+      bside.style.height = logSideH + 'px';
+
+      bmain.width  = Math.round(logMainW * dpr);
+      bmain.height = Math.round(logMainH * dpr);
+      bmain.style.width  = logMainW + 'px';
+      bmain.style.height = logMainH + 'px';
+    } else {
+      logSideW  = 188;
+      logMainW  = Math.max(1, window.innerWidth - logSideW);
+      logSideH  = logH;
+      logMainH  = logH;
+      SF        = Math.max(0.90, Math.min(1.95, Math.min(logMainW / 530, logH / 470)));
+
+      bside.width  = Math.round(logSideW * dpr);
+      bside.height = Math.round(logH     * dpr);
+      bside.style.width  = logSideW + 'px';
+      bside.style.height = logH     + 'px';
+
+      bmain.width  = Math.round(logMainW * dpr);
+      bmain.height = Math.round(logH     * dpr);
+      bmain.style.width  = logMainW + 'px';
+      bmain.style.height = logH     + 'px';
+    }
 
     drawSide(SF);
     drawMain(SF);
@@ -648,6 +796,24 @@
     });
     bside.style.cursor = hit ? 'pointer' : 'default';
   });
+
+  /* Touch support for the top-bar / sidebar */
+  bside.addEventListener('touchend', function(e) {
+    e.preventDefault();
+    var t = e.changedTouches[0];
+    var r = bside.getBoundingClientRect();
+    var mx = t.clientX - r.left, my = t.clientY - r.top;
+    var b = sideHits.back;
+    if (b && mx >= b.x && mx <= b.x + b.w && my >= b.y && my <= b.y + b.h) {
+      window.location.href = BLOG_URL;
+      return;
+    }
+    sideHits.forEach(function(h) {
+      if (h && h.idx != null && mx >= h.x && mx <= h.x + h.w && my >= h.y && my <= h.y + h.h) {
+        if (h.idx !== activeNav) { activeNav = h.idx; init(); }
+      }
+    });
+  }, { passive: false });
 
   window.addEventListener('resize', init);
 
