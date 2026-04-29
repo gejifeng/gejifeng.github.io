@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>PDF Viewer</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f5f5f2;
+        --panel: rgba(255, 255, 255, 0.92);
+        --text: #1b1b18;
+        --muted: #6c6c63;
+        --border: rgba(27, 27, 24, 0.12);
+        --accent: #b24a18;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at top, rgba(178, 74, 24, 0.08), transparent 30%),
+          var(--bg);
+      }
+
+      .toolbar {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.9rem 1rem;
+        border-bottom: 1px solid var(--border);
+        background: var(--panel);
+        backdrop-filter: blur(14px);
+      }
+
+      .title {
+        font-size: 0.95rem;
+        font-weight: 700;
+      }
+
+      .meta {
+        font-size: 0.82rem;
+        color: var(--muted);
+      }
+
+      .actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+      }
+
+      .actions a {
+        color: var(--accent);
+        text-decoration: none;
+        font-size: 0.86rem;
+        font-weight: 700;
+      }
+
+      .actions a:hover {
+        text-decoration: underline;
+      }
+
+      #status {
+        padding: 0.8rem 1rem 0;
+        font-size: 0.88rem;
+        color: var(--muted);
+      }
+
+      #viewer {
+        width: min(1040px, calc(100% - 1.5rem));
+        margin: 0 auto;
+        padding: 1rem 0 2rem;
+      }
+
+      .page {
+        margin: 0 auto 1rem;
+        display: flex;
+        justify-content: center;
+      }
+
+      .page canvas {
+        width: 100%;
+        height: auto;
+        background: white;
+        border-radius: 0.4rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+      }
+
+      .error {
+        width: min(720px, calc(100% - 2rem));
+        margin: 1rem auto;
+        padding: 1rem;
+        border: 1px solid rgba(178, 74, 24, 0.22);
+        border-radius: 0.75rem;
+        background: rgba(178, 74, 24, 0.08);
+        color: #8a3610;
+      }
+
+      @media (max-width: 640px) {
+        .toolbar {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        #viewer {
+          width: calc(100% - 1rem);
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="toolbar">
+      <div>
+        <div class="title">PDF 预览</div>
+        <div id="meta" class="meta">正在加载文档...</div>
+      </div>
+      <div class="actions">
+        <a id="open-link" href="#" target="_blank" rel="noopener noreferrer">新窗口打开</a>
+        <a id="download-link" href="#" download>下载 PDF</a>
+      </div>
+    </div>
+
+    <div id="status">正在加载 PDF 页面...</div>
+    <div id="viewer"></div>
+
+    <script type="module">
+      import * as pdfjsLib from 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.8.69/build/pdf.min.mjs';
+
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.8.69/build/pdf.worker.min.mjs';
+
+      const params = new URLSearchParams(window.location.search);
+      const file = params.get('file');
+      const statusEl = document.getElementById('status');
+      const metaEl = document.getElementById('meta');
+      const viewerEl = document.getElementById('viewer');
+      const openLinkEl = document.getElementById('open-link');
+      const downloadLinkEl = document.getElementById('download-link');
+
+      if (!file) {
+        statusEl.textContent = '缺少 file 参数，无法加载 PDF。';
+        throw new Error('Missing file parameter.');
+      }
+
+      openLinkEl.href = file;
+      downloadLinkEl.href = file;
+
+      const loadingTask = pdfjsLib.getDocument({
+        url: file,
+        cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.8.69/cmaps/',
+        cMapPacked: true
+      });
+
+      const renderPage = async (pdf, pageNumber) => {
+        const page = await pdf.getPage(pageNumber);
+        const unscaledViewport = page.getViewport({ scale: 1 });
+        const containerWidth = Math.min(viewerEl.clientWidth, 1040);
+        const scale = containerWidth / unscaledViewport.width;
+        const viewport = page.getViewport({ scale });
+
+        const pageWrapper = document.createElement('section');
+        pageWrapper.className = 'page';
+
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d', { alpha: false });
+
+        canvas.width = Math.floor(viewport.width * window.devicePixelRatio);
+        canvas.height = Math.floor(viewport.height * window.devicePixelRatio);
+        canvas.style.width = Math.floor(viewport.width) + 'px';
+        canvas.style.height = Math.floor(viewport.height) + 'px';
+
+        const transform = window.devicePixelRatio !== 1
+          ? [window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0]
+          : null;
+
+        pageWrapper.appendChild(canvas);
+        viewerEl.appendChild(pageWrapper);
+
+        await page.render({
+          canvasContext: context,
+          viewport,
+          transform
+        }).promise;
+      };
+
+      try {
+        const pdf = await loadingTask.promise;
+        metaEl.textContent = '共 ' + pdf.numPages + ' 页';
+        statusEl.textContent = '正在渲染页面...';
+
+        for (let pageNumber = 1; pageNumber <= pdf.numPages; pageNumber += 1) {
+          await renderPage(pdf, pageNumber);
+        }
+
+        statusEl.textContent = '加载完成';
+      } catch (error) {
+        console.error(error);
+        statusEl.textContent = 'PDF 加载失败';
+
+        const errorEl = document.createElement('div');
+        errorEl.className = 'error';
+        errorEl.innerHTML = '当前页面无法渲染 PDF。请尝试<a href="' + file + '" target="_blank" rel="noopener noreferrer">直接打开原始 PDF</a>。';
+        viewerEl.appendChild(errorEl);
+      }
+
+      window.addEventListener('resize', () => {
+        clearTimeout(window.__pdfResizeTimer);
+        window.__pdfResizeTimer = setTimeout(() => {
+          window.location.reload();
+        }, 150);
+      });
+    </script>
+  </body>
+</html>
