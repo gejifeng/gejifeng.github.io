@@ -1,6 +1,6 @@
 ---
 title: "AI Token 宏观研报（机构版）"
-date: 2026-04-30 10:00:00 +0800
+date: 2026-04-29 10:00:00 +0800
 categories: [研究, 加密货币]
 tags: [AI, Token, 宏观, 研报, 机构]
 lang: zh-CN
