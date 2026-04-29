@@ -1,6 +1,5 @@
-## Auto detect text files and perform LF normalization
-* text=auto
-* text eol=lf
+## Normalize line endings for text files while preserving binary files
+* text=auto eol=lf
 
 *.png binary
 *.jpg binary
@@ -8,3 +7,4 @@
 *.gif binary
 *.ico binary
 *.svg binary
+*.pdf binary
