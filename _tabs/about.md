@@ -25,9 +25,6 @@ Use the language filter on the home page to browse posts by language.
 
 Feel free to connect with me on [GitHub](https://github.com/gejifeng).
 
-**Recent Work:**
-- [AI Token Macro Report — Institutional Edition](/research) — An institutional-grade macro research report on AI Tokens, generated with AI assistance.
-
 ---
 
 ### 中文
@@ -41,6 +38,3 @@ Feel free to connect with me on [GitHub](https://github.com/gejifeng).
 - 阅读、徒步与摄影
 
 欢迎通过 [GitHub](https://github.com/gejifeng) 与我联系。
-
-**近期工作：**
-- [AI Token 宏观研报（机构版）](/research) — 使用 AI 辅助撰写的机构级 AI Token 宏观研报。
